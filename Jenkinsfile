@@ -1,47 +1,60 @@
 pipeline {
-    environment { 
-        registry = "chandu8121/project" 
-        registryCredential = 'docker-hub' 
-        dockerImage = '' 
-    }
     agent any
 
     stages {
-        
-        stage('Build Image') {
+        stage('Checkout') {
             steps {
-                echo 'Building Docker Image'
-                script {
-                    dockerImage = docker.build registry + ":$BUILD_NUMBER"
+                // Checkout the source code from GitHub
+                git 'https://github.com/your-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                // Build the Maven project
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('SonarQube') {
+            steps {
+                // Run SonarQube analysis
+                withSonarQubeEnv('SonarQube') {
+                    sh 'mvn sonar:sonar'
                 }
             }
         }
-        
-        stage('Deploy Image') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Pushing Docker Image'
-                script {
-                   docker.withRegistry( '', registryCredential ) {
-                   dockerImage.push("$BUILD_NUMBER")
-                   dockerImage.push('latest')
-                  }
+                // Build and tag Docker image
+                sh 'docker build -t your-image:latest .'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                // Push Docker image to a Docker registry
+                withDockerRegistry([credentialsId: 'your-docker-credentials', url: 'https://your-docker-registry-url']) {
+                    sh 'docker push your-image:latest'
                 }
             }
         }
-        
-        stage('Clean Up') {
+
+        stage('Deploy to Kubernetes') {
             steps {
-                sh "docker rmi $registry:$BUILD_NUMBER"
-                sh "docker rmi $registry:latest"
+                // Deploy the application to Kubernetes
+                withKubeConfig([credentialsId: 'your-kubeconfig-credentials']) {
+                    sh 'kubectl apply -f your-kubernetes-manifest.yml'
+                }
             }
         }
-        stage('Deploy') {
-            steps {
-                echo 'Deploying....'
-                sh "kubectl apply -f deployment.yaml"
-                sh "kubectl apply -f service.yaml"
-                sh "kubectl rollout restart deployment.apps/calc-deployment"
-            }
+    }
+
+    post {
+        always {
+            // Clean up any temporary resources, if required
+            deleteDir()
         }
     }
 }
