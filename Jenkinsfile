@@ -5,7 +5,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Checkout the source code from GitHub
-                git 'https://github.com/your-repo.git'
+                git 'https://github.com/Chandu3366/my-project.git'
             }
         }
 
@@ -16,14 +16,14 @@ pipeline {
             }
         }
 
-        stage('SonarQube') {
+        /*stage('SonarQube') {
             steps {
                 // Run SonarQube analysis
                 withSonarQubeEnv('SonarQube') {
                     sh 'mvn sonar:sonar'
                 }
             }
-        }
+        }*/
 
         stage('Build Docker Image') {
             steps {
